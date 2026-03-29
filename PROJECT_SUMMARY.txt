@@ -1,0 +1,1 @@
+Production-style Enterprise Knowledge Assistant built with FastAPI, OpenAI embeddings, FAISS vector search, PDF ingestion, SQLite metadata tracking, Docker, and retrieval-augmented generation (RAG).
