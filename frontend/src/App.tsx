@@ -80,43 +80,39 @@ function App() {
 
   return (
     <Layout>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight">AI Knowledge Workspace</h2>
-        <p className="mt-2 text-slate-400">
-          Upload enterprise PDFs, index them with embeddings, and ask grounded questions with source-aware answers.
-        </p>
-      </div>
+      <section className="mb-14">
+        <div className="max-w-2xl">
+          <h2 className="text-4xl font-semibold tracking-tight text-slate-900">
+            Ask your documents
+          </h2>
+          <p className="mt-4 text-lg leading-8 text-slate-600">
+            Upload PDFs, search them with AI, and get concise answers backed by sources.
+          </p>
 
-      <section className="grid gap-6 xl:grid-cols-12">
-        <div className="space-y-6 xl:col-span-3">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-            <h2 className="text-lg font-semibold">System Status</h2>
+          <div className="mt-6 flex items-center gap-3 text-sm text-slate-500">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {loadingHealth ? "Checking..." : health?.status ?? "offline"}
+            </span>
 
-            {loadingHealth && <p className="mt-4 text-slate-400">Checking backend...</p>}
-
-            {error && <p className="mt-4 text-red-400">{error}</p>}
-
-            {health && (
-              <div className="mt-4 space-y-2 text-sm text-slate-300">
-                <p>
-                  <span className="font-medium text-slate-100">Status:</span> {health.status}
-                </p>
-                <p>
-                  <span className="font-medium text-slate-100">Service:</span> {health.service}
-                </p>
-                <p>
-                  <span className="font-medium text-slate-100">Environment:</span>{" "}
-                  {health.environment}
-                </p>
-              </div>
+            {documents.length > 0 && (
+              <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
+                {documents.length} document{documents.length > 1 ? "s" : ""}
+              </span>
             )}
           </div>
 
+          {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+        </div>
+      </section>
+
+      <section className="grid gap-10 xl:grid-cols-12">
+        <div className="space-y-8 xl:col-span-3">
           <DocumentUpload onUploadSuccess={handleUploadSuccess} />
           <AdminPanel onRebuildSuccess={fetchDocuments} />
         </div>
 
-        <div className="space-y-6 xl:col-span-4">
+        <div className="space-y-8 xl:col-span-4">
           <QueryPanel documents={documents} onQuerySuccess={setQueryResult} />
           <DocumentList
             documents={documents}

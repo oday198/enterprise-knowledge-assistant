@@ -50,10 +50,13 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg">
-      <h2 className="text-lg font-semibold">Upload PDF</h2>
+    <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
+      <div className="mb-5">
+        <h3 className="text-base font-semibold text-slate-900">Upload</h3>
+        <p className="mt-1 text-sm text-slate-500">Add a PDF to the workspace.</p>
+      </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="space-y-4">
         <input
           type="file"
           accept="application/pdf"
@@ -61,19 +64,19 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             const file = event.target.files?.[0] || null;
             setSelectedFile(file);
           }}
-          className="block w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-300"
+          className="block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
         />
 
         <button
           onClick={handleUpload}
           disabled={loading}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Uploading..." : "Upload Document"}
+          {loading ? "Uploading..." : "Upload document"}
         </button>
 
-        {message && <p className="text-sm text-emerald-400">{message}</p>}
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {message && <p className="text-sm text-emerald-600">{message}</p>}
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     </div>
   );
