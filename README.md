@@ -1,29 +1,64 @@
 # Enterprise Knowledge Assistant
 
-Production-style Retrieval-Augmented Generation (RAG) system for enterprise document search and question answering.
+Production-style AI knowledge assistant built with Retrieval-Augmented Generation (RAG) for enterprise document search and question answering.
+
+## Live Demo
+
+- Frontend: `http://98.92.140.134`
+- API Docs: `http://98.92.140.134/docs`
+
+> Note: Demo may be usage-limited to control API costs.
+
+---
 
 ## Overview
 
-This project ingests PDF documents, extracts and chunks text, generates embeddings with OpenAI, stores vectors in FAISS, and answers user questions through a FastAPI backend using retrieval-augmented generation.
+This project ingests PDF documents, extracts and chunks text, generates embeddings with OpenAI, stores vectors in FAISS, and answers questions using retrieved context through a FastAPI backend and a React frontend.
+
+It is designed as a **production-style AI application**, not a toy demo, with a clean backend architecture, modular services, metadata persistence, vector retrieval, Dockerized deployment, and a polished frontend experience.
+
+---
 
 ## Features
 
-- PDF upload and ingestion
-- Text extraction and chunking
+- PDF upload and ingestion pipeline
+- Text extraction, cleaning, and chunking
 - OpenAI embeddings
 - FAISS vector search
-- OpenAI LLM answer generation
-- Source-aware responses
-- Document metadata tracking with SQLite + SQLAlchemy
-- Duplicate document detection
+- Retrieval-Augmented Generation (RAG)
+- Source-aware answers with citations
+- Query across all documents or a selected document
+- SQLite metadata tracking with SQLAlchemy
+- Duplicate document detection via content hashing
 - Rebuildable vector index
-- Dockerized backend
-- Structured logging
-- Health and readiness endpoints
-- Request ID middleware
+- Document delete + reindex workflow
+- FastAPI backend with modular architecture
+- React + Vite + Tailwind frontend
+- Dockerized frontend/backend deployment
+- AWS EC2 deployment
+- Structured logging and request tracing
+
+---
+
+## Screenshots
+
+### Main Workspace
+![Main Workspace](docs/screenshots/home.png)
+
+### Query Result
+![Query Result](docs/screenshots/query-result.png)
+
+### Documents View
+![Documents View](docs/screenshots/documents.png)
+
+### API Docs
+![API Docs](docs/screenshots/api-docs.png)
+
+---
 
 ## Tech Stack
 
+### Backend
 - Python 3.11
 - FastAPI
 - SQLAlchemy
@@ -31,41 +66,70 @@ This project ingests PDF documents, extracts and chunks text, generates embeddin
 - FAISS
 - OpenAI API
 - PyPDF
+
+### Frontend
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- Axios
+
+### DevOps / Deployment
 - Docker
-- Pytest
+- Docker Compose
+- AWS EC2
+- GitHub Actions
+
+---
 
 ## Architecture
 ```text
-Client
-  ↓
-FastAPI API
-  ├─ Document ingestion service
-  │  ├─ PDF parsing
-  │  ├─ Text cleaning
-  │  ├─ Chunking
-  │  ├─ Embeddings
-  │  └─ FAISS indexing
+Client (React + Vite + Tailwind)
+        │
+        ▼
+FastAPI Backend
+  ├── Document Upload / Ingestion
+  │     ├── PDF parsing
+  │     ├── Text cleaning
+  │     ├── Chunking
+  │     ├── OpenAI embeddings
+  │     └── FAISS indexing
   │
-  └─ Query service
-     ├─ Query embedding
-     ├─ Vector retrieval
-     ├─ Prompt building
-     └─ LLM generation
+  └── Query / RAG Service
+        ├── Query embedding
+        ├── Vector retrieval
+        ├── Prompt assembly
+        └── OpenAI answer generation
 
-Storage
-  ├─ Raw PDF files
-  ├─ SQLite metadata DB
-  └─ FAISS index
+Storage Layer
+  ├── Raw PDF files
+  ├── SQLite metadata DB
+  └── FAISS vector index
 ```
 
 ## Project Structure
+```text
+app/
+  api/
+  core/
+  db/
+  embeddings/
+  ingestion/
+  llm/
+  repositories/
+  retrieval/
+  schemas/
+  services/
+  storage/
+  utils/
+frontend/
+data/
+scripts/
+tests/
+docs/
+```
 
-- `app/`
-- `data/`
-- `scripts/`
-- `tests/`
-
-## API Endpoints
+## Core API Endpoints
 
 - `GET /api/v1/health`
 - `GET /api/v1/health/ready`
@@ -80,7 +144,8 @@ Storage
 ```json
 {
   "question": "What is this document about?",
-  "top_k": 5
+  "top_k": 5,
+  "document_id": null
 }
 ```
 
@@ -103,80 +168,100 @@ Storage
 
 ## Local Setup
 
-1. Create environment
+### 1. Clone the repository
+```bash
+git clone https://github.com/oday198/enterprise-knowledge-assistant.git
+cd enterprise-knowledge-assistant
+```
+
+### 2. Create environment
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-2. Install dependencies
+### 3. Install dependencies
 ```bash
 pip install -e ".[dev]"
 ```
 
-3. Configure environment — Copy `.env.example` to `.env` and set `OPENAI_API_KEY`
+### 4. Configure environment
+Copy `.env.example` to `.env` and set `OPENAI_API_KEY`
 
-4. Run app
+### 5. Run backend
 ```bash
 uvicorn app.main:app --reload
 ```
 
-5. Open docs: `http://127.0.0.1:8000/docs`
+### 6. Run frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
 
 ## Docker
 ```bash
 docker compose up --build
 ```
 
-## Tests
+- Frontend: `http://localhost`
+- API Docs: `http://localhost/docs`
+
+---
+
+## Deployment
+
+Recommended deployment: AWS EC2 with Docker Compose
+
+High-level deployment flow:
+1. Launch Ubuntu EC2 instance
+2. Install Docker + Docker Compose
+3. Clone repository
+4. Create `.env` from production template
+5. Run `docker compose up --build -d`
+6. Expose port 80
+
+---
+
+## Testing
 ```bash
 pytest -q
 ```
 
-## Notes
+GitHub Actions CI is included for automated test runs on push/pull request.
 
-- Uses `text-embedding-3-small` for embeddings
-- Uses `gpt-4o-mini` for answer generation
-- Duplicate PDFs are detected by content hash
-- FAISS index can be rebuilt from stored chunk metadata
+---
+
+## Key Engineering Decisions
+
+- Modular monolith architecture for simplicity and production clarity
+- FAISS abstraction layer to keep vector store replaceable
+- Metadata DB + vector index separation
+- Duplicate detection by content hash
+- Document-scoped querying in addition to global querying
+- Dockerized deployment for reproducibility
+- Frontend + backend separation for cleaner architecture
+
+---
 
 ## Future Improvements
 
-- Async/background ingestion
-- Authentication
+- Background async ingestion
+- Authentication / access control
 - Rate limiting
-- Reranking
-- Better observability
-- Cloud storage and managed DB
-- Frontend UI
+- Managed vector DB option
+- Cloud object storage for PDF files
+- LLM response caching
+- Better observability and metrics
+- Reranking for retrieval quality
 
-## Deployment
-
-Recommended deployment: AWS EC2 with Docker Compose.
-
-Why this deployment fits the project:
-- SQLite metadata database
-- FAISS local vector index
-- Raw PDF file storage on disk
-- Full-stack Dockerized architecture
-
-High-level deployment flow:
-1. Launch Ubuntu EC2 instance
-2. Install Docker and Docker Compose
-3. Clone repository
-4. Create `.env` from production template
-5. Run `docker compose up --build -d`
-6. Expose ports 3000 and 8000 or configure a reverse proxy
-
-Frontend:
-- `http://<EC2_PUBLIC_IP>:3000`
-
-Backend docs:
-- `http://<EC2_PUBLIC_IP>:8000/docs`
+---
 
 ## Author
 
-**Oday Soueidan**
-
-- LinkedIn: `https://www.linkedin.com/in/odaysoueidan`
-- GitHub: `https://github.com/oday198`
+Oday Soueidan
+LinkedIn: https://www.linkedin.com/in/odaysoueidan
+GitHub: https://github.com/oday198
