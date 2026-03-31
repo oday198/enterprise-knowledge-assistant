@@ -6,14 +6,15 @@ from app.vectorstore.faiss_store import FaissVectorStore
 
 
 class IndexService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, workspace_id: str):
         self.db = db
+        self.workspace_id = workspace_id
         self.chunk_repo = ChunkRepository(db)
         self.embedder = OpenAIEmbedder()
-        self.vector_store = FaissVectorStore()
+        self.vector_store = FaissVectorStore(workspace_id=workspace_id)
 
     def rebuild_index(self, batch_size: int = 100) -> dict:
-        chunks = self.chunk_repo.list_all()
+        chunks = self.chunk_repo.list_all(workspace_id=self.workspace_id)
         self.vector_store.reset()
 
         if not chunks:

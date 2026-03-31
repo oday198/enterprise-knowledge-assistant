@@ -6,10 +6,11 @@ from app.vectorstore.faiss_store import FaissVectorStore
 
 
 class Retriever:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, workspace_id: str):
         self.db = db
+        self.workspace_id = workspace_id
         self.embedder = OpenAIEmbedder()
-        self.vector_store = FaissVectorStore()
+        self.vector_store = FaissVectorStore(workspace_id=workspace_id)
 
     def retrieve(
         self,
@@ -19,13 +20,16 @@ class Retriever:
     ) -> list[Chunk]:
         query_vector = self.embedder.embed_query(question)
 
-        search_k = max(top_k * 5, top_k)
+        search_k = max(top_k * 20, 50)
         chunk_ids, _ = self.vector_store.search(query_vector, top_k=search_k)
 
         if not chunk_ids:
             return []
 
-        query = self.db.query(Chunk).filter(Chunk.id.in_(chunk_ids))
+        query = self.db.query(Chunk).filter(
+            Chunk.id.in_(chunk_ids),
+            Chunk.workspace_id == self.workspace_id,
+        )
 
         if document_id:
             query = query.filter(Chunk.document_id == document_id)

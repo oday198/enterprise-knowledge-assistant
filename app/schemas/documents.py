@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class DocumentCreate(BaseModel):
+    workspace_id: str
     filename: str
     storage_path: str
     content_hash: str | None = None
@@ -24,6 +25,7 @@ class DocumentRead(BaseModel):
 
 class ChunkCreate(BaseModel):
     document_id: str
+    workspace_id: str
     chunk_index: int
     page_number: int | None = None
     text: str

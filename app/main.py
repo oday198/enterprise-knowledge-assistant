@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.db.base import Base
+from app.db.migrations import ensure_workspace_schema
 from app.db.session import engine
 
 settings = get_settings()
@@ -20,6 +21,7 @@ configure_logging(settings.log_level)
 async def lifespan(_: FastAPI):
     settings.ensure_directories()
     Base.metadata.create_all(bind=engine)
+    ensure_workspace_schema()
     yield
 
 

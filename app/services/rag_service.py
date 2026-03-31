@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class RAGService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, workspace_id: str):
         self.db = db
+        self.workspace_id = workspace_id
         self.settings = get_settings()
-        self.retriever = Retriever(db)
+        self.retriever = Retriever(db, workspace_id=workspace_id)
         self.llm = OpenAIChatClient()
 
     def answer_question(
@@ -41,7 +42,10 @@ class RAGService:
         if document_id:
             selected_document = (
                 self.db.query(Document)
-                .filter(Document.id == document_id)
+                .filter(
+                    Document.id == document_id,
+                    Document.workspace_id == self.workspace_id,
+                )
                 .first()
             )
             if not selected_document:
@@ -60,7 +64,14 @@ class RAGService:
             )
 
         document_ids = list({chunk.document_id for chunk in chunks})
-        documents = self.db.query(Document).filter(Document.id.in_(document_ids)).all()
+        documents = (
+            self.db.query(Document)
+            .filter(
+                Document.id.in_(document_ids),
+                Document.workspace_id == self.workspace_id,
+            )
+            .all()
+        )
         document_map = {doc.id: doc for doc in documents}
 
         context_blocks = []
@@ -101,6 +112,7 @@ class RAGService:
         logger.info(
             "rag_query_completed",
             extra={
+                "workspace_id": self.workspace_id,
                 "top_k": top_k,
                 "source_count": len(sources),
                 "document_id": document_id,

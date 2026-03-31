@@ -8,9 +8,13 @@ from app.vectorstore.base import VectorStore
 
 
 class FaissVectorStore(VectorStore):
-    def __init__(self):
+    def __init__(self, workspace_id: str | None = None):
         settings = get_settings()
-        self.index_dir = Path(settings.faiss_index_dir)
+        self.root_index_dir = Path(settings.faiss_index_dir)
+        self.root_index_dir.mkdir(parents=True, exist_ok=True)
+
+        self.workspace_id = workspace_id or "global"
+        self.index_dir = self.root_index_dir / self.workspace_id
         self.index_dir.mkdir(parents=True, exist_ok=True)
 
         self.index_path = self.index_dir / "index.faiss"
@@ -46,9 +50,7 @@ class FaissVectorStore(VectorStore):
         self.ids.extend(ids)
         self.save()
 
-    def search(
-        self, query_vector: list[float], top_k: int = 5
-    ) -> tuple[list[str], list[float]]:
+    def search(self, query_vector: list[float], top_k: int = 5) -> tuple[list[str], list[float]]:
         if self.index is None or self.index.ntotal == 0:
             return [], []
 
@@ -71,6 +73,7 @@ class FaissVectorStore(VectorStore):
     def save(self) -> None:
         if self.index is None:
             return
+
         faiss.write_index(self.index, str(self.index_path))
         np.save(self.ids_path, np.array(self.ids, dtype=object))
 

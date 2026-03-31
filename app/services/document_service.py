@@ -29,14 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, workspace_id: str):
         self.db = db
+        self.workspace_id = workspace_id
         self.settings = get_settings()
         self.document_repo = DocumentRepository(db)
         self.chunk_repo = ChunkRepository(db)
         self.file_store = LocalFileStore()
         self.embedder = OpenAIEmbedder()
-        self.vector_store = FaissVectorStore()
+        self.vector_store = FaissVectorStore(workspace_id=workspace_id)
 
     async def upload_pdf(self, file: UploadFile) -> dict:
         if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -47,22 +48,33 @@ class DocumentService:
             raise ValidationAppException("Uploaded file is empty.")
 
         content_hash = hash_bytes(content)
-        existing_document = self.document_repo.get_by_content_hash(content_hash)
+        existing_document = self.document_repo.get_by_content_hash(
+            content_hash,
+            workspace_id=self.workspace_id,
+        )
 
         if existing_document:
             logger.info(
                 "document_duplicate_detected",
-                extra={"document_id": existing_document.id, "uploaded_filename": file.filename},
+                extra={
+                    "document_id": existing_document.id,
+                    "workspace_id": self.workspace_id,
+                    "uploaded_filename": file.filename,
+                },
             )
             return {
                 "document": existing_document,
-                "chunk_count": self.chunk_repo.count_by_document(existing_document.id),
+                "chunk_count": self.chunk_repo.count_by_document(
+                    existing_document.id,
+                    workspace_id=self.workspace_id,
+                ),
             }
 
         storage_path = self.file_store.save_bytes(content, file.filename)
 
         document = self.document_repo.create(
             DocumentCreate(
+                workspace_id=self.workspace_id,
                 filename=file.filename,
                 storage_path=str(storage_path),
                 content_hash=content_hash,
@@ -72,7 +84,11 @@ class DocumentService:
 
         logger.info(
             "document_upload_started",
-            extra={"document_id": document.id, "uploaded_filename": file.filename},
+            extra={
+                "document_id": document.id,
+                "workspace_id": self.workspace_id,
+                "uploaded_filename": file.filename,
+            },
         )
 
         try:
@@ -97,6 +113,7 @@ class DocumentService:
                     chunk_payloads.append(
                         ChunkCreate(
                             document_id=document.id,
+                            workspace_id=self.workspace_id,
                             chunk_index=chunk_index,
                             page_number=page.page_number,
                             text=chunk.text,
@@ -119,11 +136,19 @@ class DocumentService:
                 vector_ids = [chunk.id for chunk in created_chunks]
                 self.vector_store.add(embeddings, vector_ids)
 
-            document = self.document_repo.update_status(document.id, DOCUMENT_STATUS_INDEXED)
+            document = self.document_repo.update_status(
+                document.id,
+                DOCUMENT_STATUS_INDEXED,
+                workspace_id=self.workspace_id,
+            )
 
             logger.info(
                 "document_upload_completed",
-                extra={"document_id": document.id, "chunk_count": len(created_chunks)},
+                extra={
+                    "document_id": document.id,
+                    "workspace_id": self.workspace_id,
+                    "chunk_count": len(created_chunks),
+                },
             )
 
             return {
@@ -132,19 +157,29 @@ class DocumentService:
             }
 
         except Exception:
-            self.document_repo.update_status(document.id, DOCUMENT_STATUS_FAILED)
-            logger.exception("document_upload_failed", extra={"document_id": document.id})
+            self.document_repo.update_status(
+                document.id,
+                DOCUMENT_STATUS_FAILED,
+                workspace_id=self.workspace_id,
+            )
+            logger.exception(
+                "document_upload_failed",
+                extra={"document_id": document.id, "workspace_id": self.workspace_id},
+            )
             raise
 
     def delete_document(self, document_id: str) -> dict:
-        document = self.document_repo.get_by_id(document_id)
+        document = self.document_repo.get_by_id(document_id, workspace_id=self.workspace_id)
         if not document:
             raise NotFoundAppException("Document not found.")
 
-        deleted_chunk_count = self.chunk_repo.count_by_document(document_id)
+        deleted_chunk_count = self.chunk_repo.count_by_document(
+            document_id,
+            workspace_id=self.workspace_id,
+        )
         storage_path = document.storage_path
 
-        self.document_repo.delete(document_id)
+        self.document_repo.delete(document_id, workspace_id=self.workspace_id)
         self.file_store.delete_file(storage_path)
 
         return {
